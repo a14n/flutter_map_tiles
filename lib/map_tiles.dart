@@ -1,5 +1,6 @@
+import 'dart:math';
 import 'package:flutter/widgets.dart';
-import 'package:geo/geo.dart';
+import 'geo.dart';
 import 'package:meta/meta.dart';
 
 class TileLayer extends StatefulWidget {
@@ -37,12 +38,39 @@ class TileLayerState extends State<TileLayer> {
     return new LayoutBuilder(
       builder: (context, size) {
         final tilesOnGlobe = 1 << widget.controller.zoom;
+
+        final globeWidth = widget.imageMapType.tileSize.width * tilesOnGlobe;
+        final globeHeight = widget.imageMapType.tileSize.height * tilesOnGlobe;
+
+        Point scaleForZoom(Point p) => new Point(
+              globeWidth * p.x,
+              globeHeight * p.y,
+            );
+
+        final centerPoint = scaleForZoom(
+            widget.imageMapType.crs.latLngToPoint(widget.controller.center));
+
+        final screenCenter = new Point(
+          size.maxWidth ~/ 2,
+          size.maxHeight ~/ 2,
+        );
+        final screenOnGlobePosition = new Point(
+          centerPoint.x - screenCenter.x,
+          centerPoint.y - screenCenter.y,
+        );
+        final firstTileX =
+            screenOnGlobePosition.x ~/ (globeWidth ~/ tilesOnGlobe);
+        final firstTileY =
+            screenOnGlobePosition.y ~/ (globeHeight ~/ tilesOnGlobe);
+
         final tiles = <Widget>[];
-        for (var x = 0; x < tilesOnGlobe; x++) {
-          for (var y = 0; y < tilesOnGlobe; y++) {
-            final left = widget.imageMapType.tileSize.width * x;
+        for (var x = firstTileX; x < tilesOnGlobe; x++) {
+          for (var y = firstTileY; y < tilesOnGlobe; y++) {
+            final left = widget.imageMapType.tileSize.width * x -
+                screenOnGlobePosition.x;
             if (left > size.maxWidth) break;
-            final top = widget.imageMapType.tileSize.height * y;
+            final top = widget.imageMapType.tileSize.height * y -
+                screenOnGlobePosition.y;
             if (top > size.maxHeight) break;
             tiles.add(new Positioned(
               left: left,
@@ -92,6 +120,7 @@ typedef String TileUrlBuilder({
 @immutable
 class ImageMapType {
   const ImageMapType({
+    @required this.crs,
     @required this.getTileUrl,
     @required this.tileSize,
     this.maxZoom,
@@ -101,6 +130,7 @@ class ImageMapType {
   final Size tileSize;
   final int maxZoom;
   final String name;
+  final CRS crs;
 }
 
 class OpenStreetMapImageMapType extends ImageMapType {
@@ -108,6 +138,7 @@ class OpenStreetMapImageMapType extends ImageMapType {
     String name,
   })
       : super(
+          crs: const EPSG900913(),
           tileSize: const Size(256.0, 256.0),
           maxZoom: 18,
           name: name,

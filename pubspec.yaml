@@ -4,4 +4,4 @@ description: A new Flutter project.
 dependencies:
   flutter:
     sdk: flutter
-  geo: ^0.0.2
+  geo: ^0.1.0

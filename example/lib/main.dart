@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_map_tiles/map_tiles.dart';
-import 'package:geo/geo.dart';
+import 'package:flutter_map_tiles/geo.dart';
 
 void main() {
   runApp(new MyApp());
@@ -30,15 +30,16 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  MapController controller = new MapController()
-    ..center = new LatLng(0, 0)
-    ..zoom = 1;
+  final MapController controller = new MapController()
+    ..center = new LatLng(48.6833, 6.2)
+    ..zoom = 3;
 
   @override
   void initState() {
     super.initState();
-    new Timer.periodic(const Duration(seconds: 5), (t) {
-      if (controller.zoom++ == 12) {
+    //return;
+    new Timer.periodic(const Duration(seconds: 2), (t) {
+      if (controller.zoom++ == 15) {
         controller.zoom = 1;
       }
     });
