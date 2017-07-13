@@ -1,7 +1,6 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter_map_tiles/map_tiles.dart';
 import 'package:flutter_map_tiles/geo.dart';
+import 'package:flutter_map_tiles/map_tiles.dart';
 
 void main() {
   runApp(new MyApp());
@@ -15,7 +14,7 @@ class MyApp extends StatelessWidget {
       theme: new ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: new MyHomePage(title: 'Flutter Demo Home Page'),
+      home: new MyHomePage(title: 'Demo of tiles map'),
     );
   }
 }
@@ -37,12 +36,6 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void initState() {
     super.initState();
-    //return;
-    new Timer.periodic(const Duration(seconds: 2), (t) {
-      if (controller.zoom++ == 15) {
-        controller.zoom = 1;
-      }
-    });
   }
 
   @override
@@ -51,11 +44,26 @@ class _MyHomePageState extends State<MyHomePage> {
       appBar: new AppBar(
         title: new Text(widget.title),
       ),
-      body: new Center(
-        child: new TileLayer(
-          imageMapType: new OpenStreetMapImageMapType(),
-          controller: controller,
-        ),
+      body: new Stack(
+        fit: StackFit.expand,
+        children: [
+          new GestureDetector(
+            onDoubleTap: () {
+              setState(() {
+                controller.zoom = (controller.zoom - 1) % 20;
+              });
+            },
+            onTap: () {
+              setState(() {
+                controller.zoom = (controller.zoom + 1) % 20;
+              });
+            },
+            child: new TileLayer(
+              imageMapType: new OpenStreetMapImageMapType(),
+              controller: controller,
+            ),
+          ),
+        ],
       ),
     );
   }

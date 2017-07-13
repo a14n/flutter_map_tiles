@@ -1,7 +1,139 @@
 import 'dart:math';
+
 import 'package:flutter/widgets.dart';
-import 'geo.dart';
 import 'package:meta/meta.dart';
+
+import 'geo.dart';
+
+typedef Widget TileBuilder(Point<int> coordinates);
+
+class TileView extends StatelessWidget {
+  TileView({
+    @required this.globalSize,
+    @required this.center,
+    @required this.tileSize,
+    @required this.tileBuilder,
+  });
+
+  final Size globalSize;
+  final Size tileSize;
+  final TileBuilder tileBuilder;
+  final Offset center;
+
+  @override
+  Widget build(BuildContext context) {
+    return new LayoutBuilder(
+      builder: (context, size) {
+        final screenCenter = new Offset(
+          size.maxWidth / 2,
+          size.maxHeight / 2,
+        );
+        final centerCoordinates = new Point<int>(
+          center.dx ~/ tileSize.width,
+          center.dy ~/ tileSize.height,
+        );
+
+        final children = <Widget>[];
+        void addTile(Point<int> p) {
+          final zone = new Rect.fromLTWH(
+            p.x * tileSize.width - center.dx + screenCenter.dx,
+            p.y * tileSize.height - center.dy + screenCenter.dy,
+            tileSize.width,
+            tileSize.height,
+          );
+          if (zone.right >= 0 &&
+              zone.bottom >= 0 &&
+              zone.left <= size.maxWidth &&
+              zone.top <= size.maxHeight) {
+            children.add(new Positioned.fromRect(
+              rect: zone,
+              child: tileBuilder(p),
+            ));
+          }
+        }
+
+        addTile(centerCoordinates);
+
+        int border = 1;
+        int oldTilesCount;
+        while (oldTilesCount != children.length) {
+          oldTilesCount = children.length;
+
+          addTile(new Point<int>(
+            centerCoordinates.x - border,
+            centerCoordinates.y,
+          ));
+          addTile(new Point<int>(
+            centerCoordinates.x + border,
+            centerCoordinates.y,
+          ));
+          addTile(new Point<int>(
+            centerCoordinates.x,
+            centerCoordinates.y - border,
+          ));
+          addTile(new Point<int>(
+            centerCoordinates.x,
+            centerCoordinates.y + border,
+          ));
+          for (var i = 1; i < border; i++) {
+            addTile(new Point<int>(
+              centerCoordinates.x - border,
+              centerCoordinates.y - i,
+            ));
+            addTile(new Point<int>(
+              centerCoordinates.x - border,
+              centerCoordinates.y + i,
+            ));
+            addTile(new Point<int>(
+              centerCoordinates.x + border,
+              centerCoordinates.y - i,
+            ));
+            addTile(new Point<int>(
+              centerCoordinates.x + border,
+              centerCoordinates.y + i,
+            ));
+            addTile(new Point<int>(
+              centerCoordinates.x - i,
+              centerCoordinates.y - border,
+            ));
+            addTile(new Point<int>(
+              centerCoordinates.x + i,
+              centerCoordinates.y - border,
+            ));
+            addTile(new Point<int>(
+              centerCoordinates.x - i,
+              centerCoordinates.y + border,
+            ));
+            addTile(new Point<int>(
+              centerCoordinates.x + i,
+              centerCoordinates.y + border,
+            ));
+          }
+          addTile(new Point<int>(
+            centerCoordinates.x - border,
+            centerCoordinates.y - border,
+          ));
+          addTile(new Point<int>(
+            centerCoordinates.x + border,
+            centerCoordinates.y - border,
+          ));
+          addTile(new Point<int>(
+            centerCoordinates.x - border,
+            centerCoordinates.y + border,
+          ));
+          addTile(new Point<int>(
+            centerCoordinates.x + border,
+            centerCoordinates.y + border,
+          ));
+
+          border++;
+        }
+
+        return new Stack(children: children);
+      },
+    );
+  }
+}
 
 class TileLayer extends StatefulWidget {
   TileLayer({
@@ -18,77 +150,28 @@ class TileLayer extends StatefulWidget {
 
 class TileLayerState extends State<TileLayer> {
   @override
-  void initState() {
-    super.initState();
-    widget.controller.addListener(_didUpdateMap);
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
-    widget.controller.removeListener(_didUpdateMap);
-  }
-
-  void _didUpdateMap() {
-    setState(() {});
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return new LayoutBuilder(
-      builder: (context, size) {
-        final tilesOnGlobe = 1 << widget.controller.zoom;
+    final tilesOnGlobe = 1 << widget.controller.zoom;
 
-        final globeWidth = widget.imageMapType.tileSize.width * tilesOnGlobe;
-        final globeHeight = widget.imageMapType.tileSize.height * tilesOnGlobe;
+    final mapSize = new Size(widget.imageMapType.tileSize.width * tilesOnGlobe,
+        widget.imageMapType.tileSize.height * tilesOnGlobe);
 
-        Point scaleForZoom(Point p) => new Point(
-              globeWidth * p.x,
-              globeHeight * p.y,
-            );
-
-        final centerPoint = scaleForZoom(
-            widget.imageMapType.crs.latLngToPoint(widget.controller.center));
-
-        final screenCenter = new Point(
-          size.maxWidth ~/ 2,
-          size.maxHeight ~/ 2,
+    Offset scaleForZoom(Point p) => new Offset(
+          mapSize.width * p.x,
+          mapSize.height * p.y,
         );
-        final screenOnGlobePosition = new Point(
-          centerPoint.x - screenCenter.x,
-          centerPoint.y - screenCenter.y,
-        );
-        final firstTileX =
-            screenOnGlobePosition.x ~/ (globeWidth ~/ tilesOnGlobe);
-        final firstTileY =
-            screenOnGlobePosition.y ~/ (globeHeight ~/ tilesOnGlobe);
 
-        final tiles = <Widget>[];
-        for (var x = firstTileX; x < tilesOnGlobe; x++) {
-          for (var y = firstTileY; y < tilesOnGlobe; y++) {
-            final left = widget.imageMapType.tileSize.width * x -
-                screenOnGlobePosition.x;
-            if (left > size.maxWidth) break;
-            final top = widget.imageMapType.tileSize.height * y -
-                screenOnGlobePosition.y;
-            if (top > size.maxHeight) break;
-            tiles.add(new Positioned(
-              left: left,
-              width: widget.imageMapType.tileSize.width,
-              top: top,
-              height: widget.imageMapType.tileSize.height,
-              child: new Image.network(widget.imageMapType.getTileUrl(
-                x: x,
-                y: y,
-                zoom: widget.controller.zoom,
-              )),
-            ));
-          }
-        }
-        return new Stack(
-          children: tiles,
-        );
-      },
+    return new TileView(
+      center: scaleForZoom(
+          widget.imageMapType.crs.latLngToPoint(widget.controller.center)),
+      globalSize: mapSize,
+      tileSize: widget.imageMapType.tileSize,
+      tileBuilder: (coordinates) =>
+          new Image.network(widget.imageMapType.getTileUrl(
+            x: coordinates.x,
+            y: coordinates.y,
+            zoom: widget.controller.zoom,
+          )),
     );
   }
 }
