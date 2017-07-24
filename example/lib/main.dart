@@ -50,12 +50,12 @@ class _MyHomePageState extends State<MyHomePage> {
           new GestureDetector(
             onDoubleTap: () {
               setState(() {
-                controller.zoom = (controller.zoom - 1) % 20;
+                controller.zoom = (controller.zoom + 1) % 20;
               });
             },
-            onTap: () {
+            onPanUpdate: (details) {
               setState(() {
-                controller.zoom = (controller.zoom + 1) % 20;
+                controller.moveBy(-details.delta);
               });
             },
             child: new TileLayer(

@@ -1,5 +1,4 @@
-import 'dart:convert' show Codec;
-import 'dart:convert';
+import 'dart:convert' show Codec, Converter;
 import 'dart:math' as math;
 import 'dart:math' show Point, Rectangle;
 

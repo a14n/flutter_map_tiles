@@ -153,8 +153,13 @@ class TileLayerState extends State<TileLayer> {
   Widget build(BuildContext context) {
     final tilesOnGlobe = 1 << widget.controller.zoom;
 
-    final mapSize = new Size(widget.imageMapType.tileSize.width * tilesOnGlobe,
-        widget.imageMapType.tileSize.height * tilesOnGlobe);
+    final mapSize = new Size(
+      widget.imageMapType.tileSize.width * tilesOnGlobe,
+      widget.imageMapType.tileSize.height * tilesOnGlobe,
+    );
+
+    widget.controller.crs = widget.imageMapType.crs;
+    widget.controller.mapSize = mapSize;
 
     Offset scaleForZoom(Point p) => new Offset(
           mapSize.width * p.x,
@@ -191,6 +196,18 @@ class MapController extends ChangeNotifier {
     if (_zoom == zoom) return;
     _zoom = zoom;
     notifyListeners();
+  }
+
+  Size mapSize;
+
+  CRS crs;
+
+  void moveBy(Offset delta) {
+    final centerOffset = crs.latLngToPoint(center);
+    center = crs.pointToLatLng(new Point(
+      centerOffset.x + delta.dx / mapSize.width,
+      centerOffset.y + delta.dy / mapSize.height,
+    ));
   }
 }
 
